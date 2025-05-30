@@ -1,41 +1,100 @@
-console.log('[DisneyLingo] Content script loaded');
+// Shadow DOM 안 깊숙한 요소도 찾는 유틸
+function findDeep(selector, root = document) {
+    const el = root.querySelector(selector);
+    if (el) return el;
 
-// 현재 재생 상태와 마지막 자막 저장 변수
-let isPlaying = false;
-let lastSubtitle = '';
-
-// video 요소 찾기
-const video = document.querySelector('video');
-
-if (video) {
-    // 재생/일시정지 상태 추적
-    video.addEventListener('play', () => {
-        isPlaying = true;
-        console.log('[DisneyLingo] ▶️ 영상 재생 중');
-    });
-
-    video.addEventListener('pause', () => {
-        isPlaying = false;
-        console.log('[DisneyLingo] ⏸️ 영상 일시정지');
-    });
-} else {
-    console.warn('[DisneyLingo] ⚠️ video 요소를 찾을 수 없음');
+    const elems = root.querySelectorAll('*');
+    for (const node of elems) {
+        if (node.shadowRoot) {
+            const found = findDeep(selector, node.shadowRoot);
+            if (found) return found;
+        }
+    }
+    return null;
 }
 
-// 자막 DOM 변화 감지
-const observer = new MutationObserver(() => {
-    const cue = document.querySelector('.hive-subtitle-renderer-line');
-    const text = cue?.textContent?.trim();
+console.log('[DisneyLingo] 이중 자막 감지 시작');
 
-    // 조건: 자막 있음 + 재생 중 + 이전 자막과 다름
-    if (cue && text && isPlaying && text !== lastSubtitle) {
-        lastSubtitle = text;
-        console.log('[자막]', text);
+let lastText = '';
+let lastHtml = '';
+let lastUpdated = Date.now();
+
+// 자막 박스 생성
+function createSubtitleBox() {
+    if (document.querySelector('#disneylingo-box')) return;
+
+    const box = document.createElement('div');
+    box.id = 'disneylingo-box';
+    box.style.position = 'fixed';
+    box.style.left = '0';
+    box.style.width = '100%';
+    box.style.textAlign = 'center';
+    box.style.zIndex = '999999';
+    box.style.pointerEvents = 'none';
+
+    const inner = document.createElement('div');
+    inner.id = 'disneylingo-inner';
+    inner.style.display = 'inline-block';
+    inner.style.background = 'rgba(0,0,0,0.7)';
+    inner.style.color = 'white';
+    inner.style.fontSize = '28px';
+    inner.style.padding = '8px 16px';
+    inner.style.borderRadius = '8px';
+    inner.style.textShadow = '1px 1px 2px black';
+    inner.style.whiteSpace = 'pre-wrap';
+    inner.style.wordBreak = 'break-word';
+    inner.style.maxWidth = '80%';
+    inner.textContent = '';
+
+    box.appendChild(inner);
+    document.body.appendChild(box);
+}
+
+// 초기 셋업
+createSubtitleBox();
+
+setInterval(() => {
+    const cueWindow = findDeep('.hive-subtitle-renderer-cue-window');
+    const box = document.querySelector('#disneylingo-box');
+    const inner = document.querySelector('#disneylingo-inner');
+    if (!cueWindow || !box || !inner) {
+        if (box) box.style.display = 'none';
+        return;
     }
-});
 
-// 자막 DOM 변화 감지 시작
-observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-});
+    const lines = cueWindow.querySelectorAll('.hive-subtitle-renderer-line');
+    const text = Array.from(lines)
+        .map((el) => el.textContent?.trim())
+        .join('\n')
+        .trim();
+    const html = cueWindow.innerHTML;
+    const now = Date.now();
+
+    const rect = cueWindow.getBoundingClientRect();
+    const isVisible = rect.width > 0 && rect.height > 0;
+
+    // 자막이 안 보이는 상태가 일정 시간 지속될 때만 숨기기
+    if (html === lastHtml && !isVisible) {
+        if (now - lastUpdated > 1500) {
+            box.style.display = 'none';
+        }
+        return;
+    }
+
+    // 자막이 보이면 항상 보여주기
+    if (isVisible) {
+        lastHtml = html;
+        lastText = text;
+        lastUpdated = now;
+
+        inner.textContent = `[번역] ${text}`;
+        box.style.display = 'block';
+
+        const cueRect = cueWindow.getBoundingClientRect();
+        let topPos = cueRect.bottom + 10;
+        if (topPos + 60 > window.innerHeight) {
+            topPos = cueRect.top - 60;
+        }
+        box.style.top = `${topPos}px`;
+    }
+}, 300);
