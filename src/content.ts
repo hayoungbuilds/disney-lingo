@@ -1,11 +1,11 @@
 // Shadow DOM 안 깊숙한 요소도 찾는 유틸
-function findDeep(selector, root = document) {
+function findDeep(selector: string, root: Document | ShadowRoot = document): Element | null {
     const el = root.querySelector(selector);
     if (el) return el;
 
-    const elems = root.querySelectorAll('*');
+    const elems = Array.from(root.querySelectorAll('*')) as HTMLElement[];
     for (const node of elems) {
-        if (node.shadowRoot) {
+        if (node instanceof HTMLElement && node.shadowRoot) {
             const found = findDeep(selector, node.shadowRoot);
             if (found) return found;
         }
@@ -54,9 +54,10 @@ function createSubtitleBox() {
 createSubtitleBox();
 
 setInterval(() => {
-    const cueWindow = findDeep('.hive-subtitle-renderer-cue-window');
-    const box = document.querySelector('#disneylingo-box');
-    const inner = document.querySelector('#disneylingo-inner');
+    const cueWindow = findDeep('.hive-subtitle-renderer-cue-window') as HTMLElement | null;
+    const box = document.querySelector('#disneylingo-box') as HTMLElement | null;
+    const inner = document.querySelector('#disneylingo-inner') as HTMLElement | null;
+
     if (!cueWindow || !box || !inner) {
         if (box) box.style.display = 'none';
         return;
@@ -67,6 +68,7 @@ setInterval(() => {
         .map((el) => el.textContent?.trim())
         .join('\n')
         .trim();
+
     const html = cueWindow.innerHTML;
     const now = Date.now();
 
