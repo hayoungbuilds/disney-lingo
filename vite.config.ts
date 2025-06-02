@@ -9,11 +9,11 @@ export default defineConfig({
         emptyOutDir: true,
         rollupOptions: {
             input: {
-                content: resolve(__dirname, 'src/content.ts'),
+                content: resolve(__dirname, 'src/content/index.ts'),
                 popup: resolve(__dirname, 'src/popup.tsx'),
             },
             output: {
-                entryFileNames: '[name].js', // content.js, popup.js로 출력
+                entryFileNames: '[name].js',
             },
         },
     },
@@ -23,7 +23,6 @@ export default defineConfig({
             targets: [
                 { src: 'public/manifest.json', dest: '.' },
                 { src: 'public/popup.html', dest: '.' },
-                { src: 'public/icons', dest: '.' },
             ],
         }),
     ],

@@ -1,17 +1,18 @@
 {
-  "manifest_version": 3,
-  "name": "DisneyLingo",
-  "description": "디즈니플러스 자막을 번역하고 이중 자막으로 보여주는 확장 프로그램",
-  "version": "0.0.1",
-  "permissions": ["storage", "scripting"],
-  "host_permissions": ["https://www.disneyplus.com/*"],
-  "action": {
-    "default_popup": "popup.html"
-  },
-  "content_scripts": [
-    {
-      "matches": ["https://www.disneyplus.com/*"],
-      "js": ["content.js"]
-    }
-  ]
+    "manifest_version": 3,
+    "name": "DisneyLingo",
+    "description": "디즈니플러스 자막을 번역하고 이중 자막으로 보여주는 확장 프로그램",
+    "version": "0.0.1",
+    "permissions": ["storage", "scripting", "tabs"],
+    "host_permissions": ["https://www.disneyplus.com/*"],
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://www.disneyplus.com/*"],
+            "js": ["content.js"],
+            "run_at": "document_idle"
+        }
+    ]
 }
